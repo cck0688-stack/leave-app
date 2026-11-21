@@ -65,10 +65,15 @@
 <body>
 <div class="wrap">
   <h1>근무 상신</h1>
-  <p class="hint">① 날짜 → ② 종류 → ③ 시간 → ④ 사유 → ⑤ 상신</p>
+  <p class="hint">① 종류 → ② 날짜 → ③ 시간 → ④ 사유 → ⑤ 상신</p>
 
   <div class="card">
-    <div class="step"><span class="num">1</span>날짜</div>
+    <div class="step"><span class="num">1</span>종류</div>
+    <div class="grid g2" id="types"></div>
+  </div>
+
+  <div class="card">
+    <div class="step"><span class="num">2</span>날짜</div>
     <div class="grid g2">
       <button class="opt" id="dToday" aria-pressed="true">오늘</button>
       <button class="opt" id="dTomorrow" aria-pressed="false">내일</button>
@@ -76,11 +81,6 @@
     <div class="lbl">다른 날짜</div>
     <input type="date" id="dateIn">
     <p class="hint" style="margin-top:10px" id="dateTxt"></p>
-  </div>
-
-  <div class="card">
-    <div class="step"><span class="num">2</span>종류</div>
-    <div class="grid g2" id="types"></div>
   </div>
 
   <div class="card">
@@ -235,7 +235,7 @@ function render(){
   $("#autoNote").textContent = isAllDay() ? (st.type==="연가" ? "연가는 하루 종일(08:00~16:00)로 자동 입력됩니다." : "반일연가는 12:00~16:00로 자동 입력됩니다.")
     : startFixed() ? "지각은 시작이 08:00으로 자동 입력됩니다. 출근한 시간(종료)만 고르세요."
     : endFixed() ? "조퇴는 종료 시간이 16:00으로 자동 입력됩니다."
-    : !st.type ? "먼저 ②번에서 종류를 눌러주세요." : "";
+    : !st.type ? "먼저 ①번에서 종류를 눌러주세요." : "";
   buildPicker();
   const p=problem();
   const ok=!p;
