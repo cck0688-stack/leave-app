@@ -113,11 +113,11 @@
 
 <div class="overlay" id="ov"><div class="modal" id="modal"></div></div>
 
-<script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js"></script>
 <script>
 /* ===== 설정 (여기만 고치세요) ===== */
 const CONFIG = {
-  KAKAO_JS_KEY: "",          // 카카오 디벨로퍼스 > 내 앱 > JavaScript 키. 비어있으면 '복사/공유' 방식으로 동작
+  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbyTYXba0Kk9pnR2ZiISeLYvNeONRjrt65pC4kq3mxWqN6PtmR0OrFFznjHCSaEh2CNd/exec",   // 구글 Apps Script 웹앱 주소 (…/exec)
+  SECRET: "leave7Kp2x9Qa",            // Apps Script 속성의 SECRET과 같은 값
   TYPES: ["지각","외출","조퇴","연가","반일연가"],   // 필요하면 이름 변경
   REASONS: ["개인사유","교회관련 사역"],
   DAY_START: 8*60, DAY_END: 16*60,       // 08:00 ~ 16:00
@@ -250,45 +250,43 @@ function render(){
 const esc = s => s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
 /* 상신 */
-if(window.Kakao && CONFIG.KAKAO_JS_KEY && !Kakao.isInitialized()) Kakao.init(CONFIG.KAKAO_JS_KEY);
-const kakaoReady = () => window.Kakao && Kakao.isInitialized();
-
 function openModal(html){ $("#modal").innerHTML=html; $("#ov").classList.add("on"); }
 function closeModal(){ $("#ov").classList.remove("on"); }
+let curId=null;
 
 $("#go").onclick = () => {
   const msg=message();
+  curId = Date.now().toString(36)+Math.random().toString(36).slice(2,6);
   openModal(`
     <h2>이대로 상신할까요?</h2>
     <pre>${esc(msg)}</pre>
-    <button class="kakao" id="send">카카오톡으로 상신</button>
+    <button class="kakao" id="send">상신 보내기</button>
     <button class="cancel" id="cc">돌아가서 고치기</button>`);
   $("#cc").onclick=closeModal;
   $("#send").onclick=()=>send(msg);
 };
 
 async function send(msg){
-  if(kakaoReady()){
-    try{
-      Kakao.Share.sendDefault({
-        objectType:"text", text:msg,
-        link:{ mobileWebUrl:location.href, webUrl:location.href }
-      });
-      return done("카카오톡 창에서<br>받는 분 2명을 선택해<br>전송을 눌러주세요.");
-    }catch(e){ /* 아래 대체 방식으로 */ }
+  const b=$("#send"); b.disabled=true; b.textContent="보내는 중...";
+  if(!CONFIG.APPS_SCRIPT_URL){ // 서버 미설정: 복사로 대체
+    try{ await navigator.clipboard.writeText(msg); }catch(e){}
+    return done("서버가 아직 연결되지 않아<br>내용만 복사되었습니다.<br>카카오톡에 붙여넣기 하세요.");
   }
-  // 대체 방식: 휴대폰 공유창 → 카카오톡 선택, 안 되면 복사
-  if(navigator.share){
-    try{ await navigator.share({text:msg}); return done("공유창에서 카카오톡을 선택해<br>받는 분에게 보내주세요."); }
-    catch(e){ if(e.name==="AbortError") return; }
+  const payload={ secret:CONFIG.SECRET, id:curId, text:msg, dateLabel:dateLabel(st.date)+" "+st.date.getFullYear(),
+    type:st.type, start:fmt(st.start), end:fmt(st.end), reason:st.reason };
+  try{
+    await fetch(CONFIG.APPS_SCRIPT_URL,{ method:"POST", mode:"no-cors", keepalive:true,
+      headers:{"Content-Type":"text/plain;charset=utf-8"}, body:JSON.stringify(payload) });
+    done("상신되었습니다.<br>잠시 후 카카오톡에 도착합니다.", true);
+  }catch(e){
+    b.disabled=false; b.textContent="다시 보내기";
+    $("#modal").insertAdjacentHTML("afterbegin",'<p class="err">전송에 실패했습니다. 인터넷을 확인하고 다시 눌러주세요.</p>');
   }
-  try{ await navigator.clipboard.writeText(msg); }catch(e){}
-  done("내용이 복사되었습니다.<br>카카오톡 대화방에 붙여넣기 하세요.");
 }
-function done(t){
+function done(t, reload){
   openModal(`<div class="done"><div class="big">✅</div><p>${t}</p>
     <button class="cancel" id="ok">닫기</button></div>`);
-  $("#ok").onclick=closeModal;
+  $("#ok").onclick=()=>{ closeModal(); if(reload) location.reload(); };
 }
 
 render();
