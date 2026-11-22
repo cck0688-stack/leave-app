@@ -94,6 +94,7 @@
       <div class="grid g3" id="hours"></div>
       <div class="lbl">분</div>
       <div class="grid g3" id="mins"></div>
+      <button class="submit" id="tOk" style="margin-top:16px" disabled>입력</button>
     </div>
     <p class="hint" id="autoNote" style="margin:10px 0 0"></p>
   </div>
@@ -161,8 +162,8 @@ buildChoice($("#reasons"), CONFIG.REASONS, "reason");
 /* 종류별 시간 규칙 */
 function onType(){
   st.start=st.end=null;
-  if(st.type==="연가"){ st.start=CONFIG.DAY_START; st.end=CONFIG.DAY_END; }
-  else if(st.type==="반일연가"){ st.start=12*60; st.end=CONFIG.DAY_END; }
+  if(st.type==="연가"){ st.start=CONFIG.DAY_START; st.end=CONFIG.DAY_END; st.editing=null; }
+  else if(st.type==="반일연가"){ st.start=12*60; st.end=CONFIG.DAY_END; st.editing=null; }
   else if(st.type==="조퇴"){ st.end=CONFIG.DAY_END; st.editing="S"; }
   else if(st.type==="지각"){ st.start=CONFIG.DAY_START; st.editing="E"; }
   else { st.editing="S"; }
@@ -174,6 +175,13 @@ const endFixed = () => st.type==="조퇴";
 /* 시간 선택 (시 / 분 큰 버튼) */
 $("#tbS").onclick = () => { if(!isAllDay() && !startFixed()){ st.editing="S"; render(); } };
 $("#tbE").onclick = () => { if(!isAllDay() && !endFixed()){ st.editing="E"; render(); } };
+
+$("#tOk").onclick = () => {
+  if(curVal()==null) return;
+  if(st.editing==="S" && !endFixed() && st.end==null){ st.editing="E"; render(); return; }
+  st.editing=null; render();
+  const nx=$("#reasons"); if(nx && nx.scrollIntoView) nx.scrollIntoView({behavior:"smooth",block:"center"});
+};
 
 function curVal(){ return st.editing==="S" ? st.start : st.end; }
 function setVal(m){
@@ -230,7 +238,12 @@ function render(){
   $("#tsS").textContent=fmt(st.start); $("#tsE").textContent=fmt(st.end);
   $("#tbS").className="timebtn"+(st.editing==="S"&&!sFixed?" active":"")+(sFixed?" fixed":"");
   $("#tbE").className="timebtn"+(st.editing==="E"&&!eFixed?" active":"")+(eFixed?" fixed":"");
-  $("#pick").style.display = isAllDay() ? "none":"block";
+  const picking = !!st.type && !isAllDay() && !!st.editing;
+  $("#pick").style.display = picking ? "block":"none";
+  $("#tbS small").textContent = sFixed ? "시작 (자동)" : (st.start==null ? "시작" : (st.editing==="S" ? "시작 입력 중" : "시작 ✔ 눌러서 수정"));
+  $("#tbE small").textContent = eFixed ? "종료 (자동)" : (st.end==null ? "종료" : (st.editing==="E" ? "종료 입력 중" : "종료 ✔ 눌러서 수정"));
+  $("#tOk").disabled = curVal()==null;
+  $("#tOk").textContent = curVal()==null ? "시간을 골라주세요" : fmt(curVal())+" 입력";
   $("#pickLbl").textContent = (st.editing==="S"?"시작":"종료")+" 시간 — 시";
   $("#autoNote").textContent = isAllDay() ? (st.type==="연가" ? "연가는 하루 종일(08:00~16:00)로 자동 입력됩니다." : "반일연가는 12:00~16:00로 자동 입력됩니다.")
     : startFixed() ? "지각은 시작이 08:00으로 자동 입력됩니다. 출근한 시간(종료)만 고르세요."
